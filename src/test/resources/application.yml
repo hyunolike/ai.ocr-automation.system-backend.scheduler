@@ -1,0 +1,20 @@
+# 테스트는 설정 서버 없이 독립적으로 돈다.
+spring:
+  cloud:
+    config:
+      enabled: false
+
+ocr:
+  scheduler:
+    backend:
+      base-url: http://localhost:18080
+      internal-token: test-internal-token
+      connect-timeout-millis: 500
+      read-timeout-millis: 1000  # 접수만 하므로 짧다
+    jobs:
+      pending-dispatch:
+        # 테스트 중 잡이 실제로 돌면서 backend 를 찾지 않도록 꺼둔다
+        enabled: false
+        batch-size: 20
+      stale-recovery:
+        enabled: false
