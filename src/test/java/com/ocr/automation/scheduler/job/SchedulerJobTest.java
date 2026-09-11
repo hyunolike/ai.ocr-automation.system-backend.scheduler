@@ -2,7 +2,7 @@ package com.ocr.automation.scheduler.job;
 
 import com.ocr.automation.scheduler.client.BackendClient;
 import com.ocr.automation.scheduler.client.BackendUnavailableException;
-import com.ocr.automation.scheduler.client.dto.ProcessingSummary;
+import com.ocr.automation.scheduler.client.dto.DispatchResult;
 import com.ocr.automation.scheduler.client.dto.RecoveryResult;
 import com.ocr.automation.scheduler.config.SchedulerProperties;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,7 +41,7 @@ class SchedulerJobTest {
 
     @Test
     void 설정된_배치_크기로_요청한다() {
-        when(backendClient.processPending(20)).thenReturn(new ProcessingSummary(3, 3, 0, 0));
+        when(backendClient.processPending(20)).thenReturn(new DispatchResult(3, 0, 0));
 
         dispatchJob.dispatch();
 
@@ -50,7 +50,7 @@ class SchedulerJobTest {
 
     @Test
     void 처리할_문서가_없어도_조용히_끝난다() {
-        when(backendClient.processPending(anyInt())).thenReturn(new ProcessingSummary(0, 0, 0, 0));
+        when(backendClient.processPending(anyInt())).thenReturn(new DispatchResult(0, 0, 0));
 
         assertThatCode(dispatchJob::dispatch).doesNotThrowAnyException();
     }
@@ -73,6 +73,13 @@ class SchedulerJobTest {
     @Test
     void 응답이_null_이어도_터지지_않는다() {
         when(backendClient.processPending(anyInt())).thenReturn(null);
+
+        assertThatCode(dispatchJob::dispatch).doesNotThrowAnyException();
+    }
+
+    @Test
+    void 큐가_포화여도_잡은_예외를_던지지_않는다() {
+        when(backendClient.processPending(anyInt())).thenReturn(new DispatchResult(2, 18, 0));
 
         assertThatCode(dispatchJob::dispatch).doesNotThrowAnyException();
     }

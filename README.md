@@ -5,6 +5,9 @@ OCR 자동화 시스템의 **스케줄러**. 배치 잡을 정해진 주기에 �
 이 서비스는 **"언제 처리할지"만** 안다. OCR 엔진도 스토리지도 DB 도 모르고,
 [backend](https://github.com/hyunolike/ai.ocr-automation.system-backend)의 내부 API 를 호출하기만 한다.
 
+backend 는 요청을 받아 **워커 풀에 접수만 하고 즉시 202 로 응답한다.** 그래서 이 잡의
+호출은 짧게 끝나고, 처리 결과를 기다리지 않는다.
+
 <br>
 
 ## 🎯 왜 분리했나
@@ -24,7 +27,7 @@ OCR 처리 로직을 여기 두지 않은 이유:
 
 | 잡 | 주기 | 하는 일 |
 |---|---|---|
-| `PendingDocumentDispatchJob` | `fixed-delay` 30초 | 대기 중인 문서를 OCR 처리로 넘긴다 |
+| `PendingDocumentDispatchJob` | `fixed-delay` 30초 | 대기 중인 문서를 backend 워커 풀에 접수시킨다 |
 | `StaleDocumentRecoveryJob` | cron 매시 정각 | 중단된 채 `PROCESSING` 에 멈춘 문서를 회수한다 |
 
 ```mermaid
@@ -55,7 +58,7 @@ backend 인스턴스가 OCR 처리 도중 죽으면 문서는 `PROCESSING` 상�
 | 주기 지정 | `fixedDelay` (`fixedRate` 아님) | 처리가 주기보다 오래 걸릴 때 fixedRate 는 호출을 밀어 넣어 backend 를 더 밀어붙인다. fixedDelay 는 이전 실행이 **끝난 뒤부터** 세므로 밀리지 않는다 |
 | 예외 처리 | 잡 안에서 전부 삼킨다 | `@Scheduled` 메서드에서 예외가 새어나가면 그 잡은 **다시 스케줄되지 않는다.** backend 가 잠깐 죽었다고 스케줄러가 영영 멈추면 안 된다 |
 | 스레드 풀 | `poolSize = 2` | 기본 스케줄러는 단일 스레드라 한 잡이 오래 걸리면 다른 잡이 밀린다 |
-| 타임아웃 | 연결 2초 / 읽기 60초 | 기본값(무제한)이면 backend 무응답 시 스레드가 영원히 묶인다. 읽기는 OCR 배치를 감안해 넉넉히 |
+| 타임아웃 | 연결 2초 / 읽기 5초 | 기본값(무제한)이면 backend 무응답 시 스레드가 영원히 묶인다. **backend 가 접수만 하고 즉시 응답**하므로 읽기를 길게 잡을 이유가 없다 |
 | 잡 on/off | `@ConditionalOnProperty` | 설정만으로 특정 잡을 끌 수 있다. 테스트에서도 이걸로 끈다 |
 
 <br>
@@ -72,7 +75,7 @@ ocr:
     backend:
       base-url: http://localhost:8080
       connect-timeout-millis: 2000
-      read-timeout-millis: 60000
+      read-timeout-millis: 5000
     jobs:
       pending-dispatch:
         enabled: true
@@ -127,7 +130,15 @@ cd ../ai.ocr-automation.system-backend && ./gradlew bootRun
 잡이 도는지는 로그로 확인한다.
 
 ```
-대기 문서 처리 요청 완료: picked=3, completed=3, failed=0, skipped=0
+대기 문서 접수 완료: queued=3, skipped=0
+```
+
+backend 의 워커 큐가 가득 차면 경고가 남는다. 이때는 **주기를 늘려도 해결되지 않는다** —
+처리가 유입을 못 따라가는 것이므로 backend 의 `ocr.processing.concurrency` 를 올리거나
+인스턴스를 늘려야 한다.
+
+```
+backend 워커 큐가 포화 상태입니다: queued=2, rejected=18, skipped=0
 ```
 
 ### 테스트

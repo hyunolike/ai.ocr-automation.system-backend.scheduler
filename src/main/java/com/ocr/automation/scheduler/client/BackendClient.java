@@ -1,6 +1,6 @@
 package com.ocr.automation.scheduler.client;
 
-import com.ocr.automation.scheduler.client.dto.ProcessingSummary;
+import com.ocr.automation.scheduler.client.dto.DispatchResult;
 import com.ocr.automation.scheduler.client.dto.RecoveryResult;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,8 +21,12 @@ public class BackendClient {
 
     private final RestClient backendRestClient;
 
-    /** 대기 중인 문서를 배치로 처리하도록 요청한다. */
-    public ProcessingSummary processPending(int batchSize) {
+    /**
+     * 대기 중인 문서를 워커 풀에 접수하도록 요청한다.
+     *
+     * <p>backend 는 처리를 기다리지 않고 202 로 즉시 응답한다. 그래서 이 호출은 짧다.
+     */
+    public DispatchResult processPending(int batchSize) {
         try {
             return backendRestClient.post()
                     .uri(uriBuilder -> uriBuilder
@@ -30,7 +34,7 @@ public class BackendClient {
                             .queryParam("batchSize", batchSize)
                             .build())
                     .retrieve()
-                    .body(ProcessingSummary.class);
+                    .body(DispatchResult.class);
         } catch (RestClientException e) {
             throw new BackendUnavailableException(
                     "대기 문서 처리 요청에 실패했습니다: batchSize=" + batchSize, e);

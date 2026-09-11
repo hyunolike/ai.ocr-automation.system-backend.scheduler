@@ -9,7 +9,7 @@ ocr:
     backend:
       base-url: http://localhost:18080
       connect-timeout-millis: 500
-      read-timeout-millis: 1000
+      read-timeout-millis: 1000  # 접수만 하므로 짧다
     jobs:
       pending-dispatch:
         # 테스트 중 잡이 실제로 돌면서 backend 를 찾지 않도록 꺼둔다
