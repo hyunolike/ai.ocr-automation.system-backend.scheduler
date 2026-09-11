@@ -11,6 +11,7 @@ import org.springframework.web.client.RestClient;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
@@ -22,9 +23,13 @@ class BackendClientTest {
     private MockRestServiceServer server;
     private BackendClient backendClient;
 
+    private static final String TOKEN = "test-internal-token";
+
     @BeforeEach
     void setUp() {
-        RestClient.Builder builder = RestClient.builder().baseUrl("http://backend:8080");
+        RestClient.Builder builder = RestClient.builder()
+                .baseUrl("http://backend:8080")
+                .defaultHeader("X-Internal-Token", TOKEN);
         server = MockRestServiceServer.bindTo(builder).build();
         backendClient = new BackendClient(builder.build());
     }
@@ -46,6 +51,19 @@ class BackendClientTest {
         assertThat(result.skipped()).isEqualTo(1);
         assertThat(result.didNothing()).isFalse();
         assertThat(result.isBackendSaturated()).isFalse();
+        server.verify();
+    }
+
+    @Test
+    void 모든_호출에_내부_토큰이_붙는다() {
+        server.expect(requestTo("http://backend:8080/internal/v1/ocr/recover-stalled"))
+                .andExpect(header("X-Internal-Token", TOKEN))
+                .andRespond(withSuccess("""
+                        {"recovered":0}
+                        """, MediaType.APPLICATION_JSON));
+
+        backendClient.recoverStalled();
+
         server.verify();
     }
 

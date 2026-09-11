@@ -8,6 +8,7 @@ ocr:
   scheduler:
     backend:
       base-url: http://localhost:18080
+      internal-token: test-internal-token
       connect-timeout-millis: 500
       read-timeout-millis: 1000  # 접수만 하므로 짧다
     jobs:

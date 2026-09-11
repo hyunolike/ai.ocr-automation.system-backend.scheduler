@@ -26,6 +26,9 @@ class OcrSchedulerApplicationTest {
         assertThat(properties.backend().baseUrl()).isEqualTo("http://localhost:18080");
         assertThat(properties.backend().connectTimeout().toMillis()).isEqualTo(500);
         assertThat(properties.jobs().pendingDispatch().batchSize()).isEqualTo(20);
+        assertThat(properties.backend().internalToken()).isEqualTo("test-internal-token");
+        // 개발 기본 토큰이 아니어야 한다 — "기본값이라 통과한 것"이 아님을 분명히 한다
+        assertThat(properties.backend().usesDevToken()).isFalse();
     }
 
     @Test

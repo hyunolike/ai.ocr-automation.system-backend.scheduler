@@ -31,7 +31,7 @@ class SchedulerJobTest {
     void setUp() {
         backendClient = Mockito.mock(BackendClient.class);
         SchedulerProperties properties = new SchedulerProperties(
-                new SchedulerProperties.Backend("http://localhost:8080", 2000, 60000),
+                new SchedulerProperties.Backend("http://localhost:8080", "test-internal-token", 2000, 5000),
                 new SchedulerProperties.Jobs(
                         new SchedulerProperties.Jobs.PendingDispatch(true, 20),
                         new SchedulerProperties.Jobs.StaleRecovery(true)));

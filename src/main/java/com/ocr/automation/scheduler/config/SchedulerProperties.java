@@ -17,13 +17,25 @@ public record SchedulerProperties(
         @DefaultValue Jobs jobs) {
 
     /**
+     * @param internalToken        backend 의 /internal 을 부를 때 제시하는 공유 토큰
      * @param connectTimeoutMillis 연결 타임아웃
-     * @param readTimeoutMillis    응답 타임아웃. OCR 배치가 오래 걸리므로 넉넉히 잡는다
+     * @param readTimeoutMillis    응답 타임아웃. backend 가 접수만 하므로 짧아도 된다
      */
     public record Backend(
             @DefaultValue("http://localhost:8080") String baseUrl,
+            @DefaultValue(Backend.DEV_TOKEN) String internalToken,
             @DefaultValue("2000") long connectTimeoutMillis,
             @DefaultValue("60000") long readTimeoutMillis) {
+
+        /**
+         * 개발 편의용 기본 토큰. backend 쪽 기본값과 같아야 로컬에서 그냥 돈다.
+         * 이름 자체를 경고로 삼았다 — 로그나 설정에서 이 값이 보이면 보호가 없는 상태다.
+         */
+        public static final String DEV_TOKEN = "local-dev-only-token";
+
+        public boolean usesDevToken() {
+            return DEV_TOKEN.equals(internalToken);
+        }
 
         public Duration connectTimeout() {
             return Duration.ofMillis(connectTimeoutMillis);
